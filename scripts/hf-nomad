@@ -306,6 +306,69 @@ cmd_restart() {
     cmd_start
 }
 
+# Change FreeDV mode
+cmd_mode() {
+    local new_mode="${1:-}"
+    local config_file="$HOME/.freedvtnc2.conf"
+
+    if [ ! -f "$config_file" ]; then
+        error "Config not found: $config_file"
+    fi
+
+    local current_mode
+    current_mode=$(grep -E "^mode=" "$config_file" | cut -d= -f2)
+
+    if [ -z "$new_mode" ]; then
+        # Show current mode and options
+        echo -e "${BOLD}FreeDV Mode${NC}"
+        echo ""
+        echo -e "Current mode: ${GREEN}${current_mode}${NC}"
+        echo ""
+        echo "Available modes:"
+        echo "  DATAC1  ~980 bps, ~1.7 kHz  (good conditions)"
+        echo "  DATAC3  ~321 bps, ~0.9 kHz  (moderate conditions)"
+        echo "  DATAC4   ~87 bps, ~0.5 kHz  (weak signals)"
+        echo ""
+        echo "Usage: hf-nomad mode <DATAC1|DATAC3|DATAC4>"
+        return
+    fi
+
+    # Validate mode
+    case "$new_mode" in
+        DATAC1|DATAC3|DATAC4)
+            ;;
+        datac1|datac3|datac4)
+            new_mode=$(echo "$new_mode" | tr '[:lower:]' '[:upper:]')
+            ;;
+        *)
+            error "Invalid mode: $new_mode (use DATAC1, DATAC3, or DATAC4)"
+            ;;
+    esac
+
+    if [ "$new_mode" = "$current_mode" ]; then
+        info "Already using $new_mode"
+        return
+    fi
+
+    # Update config
+    sed -i "s/^mode=.*/mode=$new_mode/" "$config_file"
+    success "Mode changed: $current_mode → $new_mode"
+
+    # Restart if running
+    if systemctl --user is-active --quiet hf-nomad-modem.service 2>/dev/null; then
+        info "Restarting modem..."
+        systemctl --user restart hf-nomad-modem.service
+        sleep 2
+        if systemctl --user is-active --quiet hf-nomad-modem.service 2>/dev/null; then
+            success "Modem restarted with $new_mode"
+        else
+            warn "Modem failed to restart - check logs"
+        fi
+    else
+        info "Modem not running. Start with: hf-nomad start"
+    fi
+}
+
 # Show help
 cmd_help() {
     echo "hf-nomad - HF NomadNet/Reticulum control script"
@@ -321,6 +384,7 @@ cmd_help() {
     echo "  test-radio   Test CAT connection to radio"
     echo "  test-audio   Test audio device configuration"
     echo ""
+    echo "  mode [MODE]  Show/change FreeDV mode (DATAC1|DATAC3|DATAC4)"
     echo "  monitor      Follow live modem output"
     echo "  logs [svc]   Show service logs (modem|rigctld|all)"
     echo ""
@@ -351,6 +415,9 @@ case "${1:-}" in
         ;;
     test-audio)
         cmd_test_audio
+        ;;
+    mode)
+        cmd_mode "${2:-}"
         ;;
     monitor)
         cmd_monitor
