@@ -44,14 +44,19 @@ If prerequisites are missing, the checker will guide you through installing them
 ### Building codec2 in MSYS2 (if not already done)
 
 ```bash
-# In MSYS2 MINGW64 terminal:
-pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
+# In MSYS2 MINGW64 terminal (not MSYS2 MSYS!):
+pacman -Syu
+pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja git
+
+# Clone and build codec2
 git clone https://github.com/drowe67/codec2.git
 cd codec2
 mkdir build && cd build
 cmake ..
-make
+ninja
 ```
+
+**Important:** MSYS2 uses `ninja` as the default build system, not `make`. If you run `make` you'll get "no targets specified" error.
 
 This creates `libcodec2.dll` in `build/src/`.
 

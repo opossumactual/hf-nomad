@@ -193,9 +193,9 @@ def check_msys2(offer_install=True):
     print("  To install manually:")
     print("  1. Download from: https://www.msys2.org/")
     print("  2. Run installer (use default C:\\msys64)")
-    print("  3. Open MINGW64 terminal")
+    print("  3. Open MINGW64 terminal (not MSYS2 MSYS)")
     print("  4. Run: pacman -Syu")
-    print("  5. Run: pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git")
+    print("  5. Run: pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja git")
     return None
 
 
@@ -205,9 +205,10 @@ def install_msys2_packages(msys_path):
     print("  This may open an MSYS2 window.")
 
     # Create a script to run in MSYS2
+    # Note: ninja is the default cmake generator on MSYS2, so we include it
     script = """#!/bin/bash
 pacman -Syu --noconfirm
-pacman -S --noconfirm mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git
+pacman -S --noconfirm mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja git
 """
     script_path = msys_path / 'tmp' / 'install_packages.sh'
     script_path.write_text(script.replace('\r\n', '\n'))
@@ -306,6 +307,7 @@ def offer_auto_build_codec2(msys_path):
         return False
 
     # Create a batch script that runs in MSYS2
+    # Note: MSYS2 uses ninja by default, not make
     script_content = """#!/bin/bash
 set -e
 echo "Building codec2..."
@@ -317,7 +319,7 @@ cd codec2
 mkdir -p build
 cd build
 cmake ..
-make -j4
+ninja
 echo "codec2 build complete!"
 """
 
