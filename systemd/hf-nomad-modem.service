@@ -9,9 +9,10 @@ After=hf-nomad-rigctld.service
 [Service]
 Type=simple
 EnvironmentFile=%h/.config/hf-nomad/config
+Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
 # Give rigctld a moment to start if we depend on it
 ExecStartPre=/bin/sh -c '[ "$PTT_METHOD" != "rigctld" ] || sleep 2'
-ExecStart=freedvtnc2
+ExecStart=%h/.local/bin/freedvtnc2 --no-cli
 Restart=on-failure
 RestartSec=5
 
