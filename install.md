@@ -35,11 +35,13 @@ MSYS2 provides the build tools needed to compile codec2.
 
 freedvtnc2 requires a recent version of codec2 that isn't available as a Windows binary. We need to build it from source.
 
-Open **MSYS2 MinGW 64-bit** (not the regular MSYS2 terminal):
+Open **"MSYS2 MinGW 64-bit"** from the Start menu (not "MSYS2 MSYS" or "MSYS2 UCRT"):
 
 ```bash
-# Install build tools
-pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-make git
+# Install build tools (the toolchain includes gcc, make, etc.)
+pacman -S --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git
+
+# When prompted, press Enter to install all toolchain components
 
 # Clone codec2
 cd ~
@@ -49,7 +51,7 @@ cd codec2
 # Build
 mkdir build && cd build
 cmake -G "MinGW Makefiles" ..
-mingw32-make -j4
+make -j4
 
 # Note the path to libcodec2.dll
 # Usually: ~/codec2/build/src/libcodec2.dll
