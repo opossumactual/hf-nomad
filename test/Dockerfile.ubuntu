@@ -1,0 +1,26 @@
+FROM ubuntu:24.04
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install minimal dependencies needed to run the installer
+RUN apt-get update && apt-get install -y \
+    sudo \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root test user with sudo access
+RUN useradd -m -s /bin/bash testuser && \
+    echo "testuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Copy the installer
+COPY install.sh /home/testuser/install.sh
+RUN chmod +x /home/testuser/install.sh && \
+    chown testuser:testuser /home/testuser/install.sh
+
+# Switch to test user
+USER testuser
+WORKDIR /home/testuser
+
+# Run the installer
+CMD ["./install.sh"]
