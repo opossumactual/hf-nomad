@@ -35,7 +35,7 @@ HF Radio
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/hf-nomad.git
+git clone https://github.com/opossumactual/hf-nomad.git
 cd hf-nomad
 
 # Install dependencies
