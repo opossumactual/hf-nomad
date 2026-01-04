@@ -323,6 +323,26 @@ def add_to_path():
         print(f"    {python_dir}")
 
 
+def create_hf_nomad_command():
+    """Create hf-nomad.cmd so it can be run from anywhere."""
+    info("Creating hf-nomad command...")
+
+    scripts_dir = Path(sys.executable).parent / 'Scripts'
+    cmd_file = scripts_dir / 'hf-nomad.cmd'
+
+    # Find hf_nomad.py location (should be in parent of this script)
+    hf_nomad_py = Path(__file__).parent.parent / 'hf_nomad.py'
+
+    if not hf_nomad_py.exists():
+        warn(f"hf_nomad.py not found at {hf_nomad_py}")
+        return
+
+    cmd_content = f'@echo off\npy -3.11 "{hf_nomad_py}" %*\n'
+    cmd_file.write_text(cmd_content)
+    success(f"Created {cmd_file}")
+    print("  You can now run: hf-nomad start, hf-nomad stop, hf-nomad status")
+
+
 def test_installation():
     """Test the installation."""
     print()
@@ -392,6 +412,9 @@ Please build codec2 first:
     # Step 8: Update PATH
     add_to_path()
 
+    # Step 9: Create hf-nomad command
+    create_hf_nomad_command()
+
     # Test
     test_installation()
 
@@ -400,7 +423,7 @@ Please build codec2 first:
     print()
     print("Next steps:")
     print("  1. Run: python configure.py")
-    print("  2. Run: python hf_nomad.py start")
+    print("  2. Run: hf-nomad start")
     print("  3. Run: nomadnet")
     print()
 
