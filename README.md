@@ -23,15 +23,18 @@ HF Radio
 
 ## Supported Systems
 
-| Distro | Version | Notes |
-|--------|---------|-------|
+| Platform | Version | Notes |
+|----------|---------|-------|
 | Arch Linux | Rolling | Full support |
 | Debian | 12+ | Builds codec2 from source |
 | Ubuntu | 24.04+ | Builds codec2 from source |
+| Windows | 10/11 | Manual install, see [install.md](install.md) |
 
 **Note:** Ubuntu 22.04 not supported (requires Python 3.11+)
 
 ## Installation
+
+### Linux
 
 ```bash
 # Clone the repo
@@ -44,6 +47,17 @@ cd hf-nomad
 # Configure (interactive)
 ./configure.sh
 ```
+
+### Windows
+
+See [install.md](install.md) for detailed Windows installation instructions.
+
+Quick overview:
+1. Install Python 3.11+, MSYS2, and Hamlib
+2. Build codec2 from source in MSYS2
+3. `pip install freedvtnc2 nomadnet pyserial sounddevice`
+4. `python configure.py`
+5. `python hf_nomad.py start`
 
 ## Usage
 
@@ -110,12 +124,22 @@ Any radio supported by hamlib with USB audio, including:
 
 ## Configuration Files
 
+### Linux
+
 | File | Purpose |
 |------|---------|
 | `~/.config/hf-nomad/config` | Master config (shell sourceable) |
 | `~/.freedvtnc2.conf` | FreeDV modem settings |
 | `~/.reticulum/config` | Reticulum interfaces |
 | `~/.nomadnetwork/config` | NomadNet settings |
+
+### Windows
+
+| File | Purpose |
+|------|---------|
+| `%APPDATA%\hf-nomad\config.json` | Master config |
+| `%APPDATA%\freedvtnc2\config` | FreeDV modem settings |
+| `%APPDATA%\Reticulum\config` | Reticulum interfaces |
 
 ## Troubleshooting
 
