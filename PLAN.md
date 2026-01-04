@@ -115,27 +115,22 @@ Show live status (PTT, audio levels, sync)
 
 ```
 hf-nomad/
-├── install.sh           # Main installer
-├── uninstall.sh         # Clean uninstall
-├── configure.sh         # Interactive config wizard
+├── install.sh           # Main installer (distro detection, packages, codec2 build)
+├── configure.sh         # Interactive config wizard (also installs services)
 ├── scripts/
-│   ├── hf-nomad         # Main control script
-│   ├── test-radio.sh    # Radio test
-│   ├── test-audio.sh    # Audio test
-│   └── detect-devices.sh
+│   └── hf-nomad         # Main control script (start/stop/status/test/monitor)
 ├── systemd/
-│   ├── hf-nomad-rigctld.service
-│   ├── hf-nomad-modem.service
-│   └── hf-nomad.target
-├── templates/
-│   ├── freedvtnc2.conf.template
-│   ├── reticulum.conf.template
-│   └── nomadnetwork.conf.template
-├── README.md
-├── QUICKSTART.md
-└── docs/
-    ├── SUPPORTED_RADIOS.md
-    └── TROUBLESHOOTING.md
+│   ├── hf-nomad-rigctld.service   # rigctld service (CAT control)
+│   ├── hf-nomad-modem.service     # freedvtnc2 modem service
+│   └── hf-nomad.target            # Group target
+├── test.sh              # Docker test runner
+├── test/
+│   ├── Dockerfile.arch
+│   ├── Dockerfile.debian
+│   └── Dockerfile.ubuntu
+├── PLAN.md
+├── CLAUDE.md
+└── README.md            # TODO: User documentation
 ```
 
 ## Key Learnings from oticulum
@@ -210,10 +205,10 @@ Ubuntu/Debian may need codec2 built from source for latest features.
 - [x] FreeDV mode selection (DATAC1/DATAC3/DATAC4)
 - [x] Config file generation (hf-nomad, freedvtnc2, reticulum, nomadnet)
 
-### Phase 3: Systemd Integration
-- [ ] Service files (user services)
-- [ ] Start/stop/status scripts
-- [ ] Status monitoring
+### Phase 3: Systemd Integration ✅ COMPLETE
+- [x] Service files (user services in ~/.config/systemd/user/)
+- [x] hf-nomad control script (start/stop/status/test-radio/test-audio/monitor)
+- [x] Auto-installation via configure.sh
 
 ### Phase 4: Polish
 - [ ] Error handling and recovery

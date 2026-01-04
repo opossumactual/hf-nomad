@@ -1,0 +1,19 @@
+[Unit]
+Description=hf-nomad FreeDV TNC modem (freedvtnc2)
+Documentation=https://github.com/xssfox/freedvtnc2
+After=network.target sound.target
+# Conditionally depend on rigctld if using CAT PTT
+Wants=hf-nomad-rigctld.service
+After=hf-nomad-rigctld.service
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/hf-nomad/config
+# Give rigctld a moment to start if we depend on it
+ExecStartPre=/bin/sh -c '[ "$PTT_METHOD" != "rigctld" ] || sleep 2'
+ExecStart=freedvtnc2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

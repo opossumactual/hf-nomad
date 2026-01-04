@@ -1,0 +1,15 @@
+[Unit]
+Description=hf-nomad rigctld (hamlib radio control daemon)
+Documentation=https://github.com/Hamlib/Hamlib
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/hf-nomad/config
+ExecStartPre=/bin/sh -c '[ "$RADIO_SERIAL" != "none" ] && [ "$RADIO_MODEL" != "none" ] || exit 1'
+ExecStart=/bin/sh -c 'exec rigctld -m $RADIO_MODEL -r "$RADIO_SERIAL" -t $RIGCTLD_PORT'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

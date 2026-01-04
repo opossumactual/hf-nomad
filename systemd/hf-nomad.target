@@ -1,0 +1,8 @@
+[Unit]
+Description=hf-nomad HF Radio Stack
+Documentation=man:systemd.special(7)
+Wants=hf-nomad-modem.service
+After=hf-nomad-modem.service
+
+[Install]
+WantedBy=default.target

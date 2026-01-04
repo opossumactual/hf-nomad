@@ -13,14 +13,18 @@ RUN apt-get update && apt-get install -y \
 RUN useradd -m -s /bin/bash testuser && \
     echo "testuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Copy the installer
-COPY install.sh /home/testuser/install.sh
-RUN chmod +x /home/testuser/install.sh && \
-    chown testuser:testuser /home/testuser/install.sh
+# Copy all project files
+COPY --chown=testuser:testuser install.sh /home/testuser/hf-nomad/
+COPY --chown=testuser:testuser configure.sh /home/testuser/hf-nomad/
+COPY --chown=testuser:testuser scripts/ /home/testuser/hf-nomad/scripts/
+COPY --chown=testuser:testuser systemd/ /home/testuser/hf-nomad/systemd/
+COPY --chown=testuser:testuser test/run-tests.sh /home/testuser/hf-nomad/
+
+RUN chmod +x /home/testuser/hf-nomad/*.sh /home/testuser/hf-nomad/scripts/*
 
 # Switch to test user
 USER testuser
-WORKDIR /home/testuser
+WORKDIR /home/testuser/hf-nomad
 
-# Run the installer
-CMD ["./install.sh"]
+# Run the tests
+CMD ["./run-tests.sh"]

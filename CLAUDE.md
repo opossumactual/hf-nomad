@@ -25,18 +25,25 @@ HF Radio
 **Completed:**
 - Phase 1: `install.sh` - Installs all dependencies
 - Phase 2: `configure.sh` - Interactive configuration wizard
+- Phase 3: systemd services + `hf-nomad` control script
 
-**TODO (Phase 3):**
-- systemd user services for rigctld and freedvtnc2
-- `hf-nomad` helper script (start/stop/status)
-- Test/monitor utilities
+**TODO (Phase 4: Polish):**
+- Error handling and recovery
+- Raspberry Pi testing
+- User documentation (README.md)
 
 ## Project Structure
 
 ```
 hf-nomad/
 ├── install.sh        # Main installer (distro detection, package install, codec2 build)
-├── configure.sh      # Interactive setup wizard
+├── configure.sh      # Interactive setup wizard (also installs services)
+├── scripts/
+│   └── hf-nomad      # Control script (start/stop/status/test-radio/test-audio/monitor)
+├── systemd/
+│   ├── hf-nomad-rigctld.service   # rigctld CAT control daemon
+│   ├── hf-nomad-modem.service     # freedvtnc2 modem
+│   └── hf-nomad.target            # Group target
 ├── test.sh           # Docker test runner
 └── test/
     ├── Dockerfile.arch

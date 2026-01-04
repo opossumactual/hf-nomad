@@ -471,6 +471,46 @@ select_freedv_mode() {
 }
 
 # -----------------------------------------------------------------------------
+# Install Services and Scripts
+# -----------------------------------------------------------------------------
+install_services() {
+    header "Installing Services"
+
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local user_systemd="$HOME/.config/systemd/user"
+    local user_bin="$HOME/.local/bin"
+
+    # Install systemd user services
+    info "Installing systemd user services..."
+    mkdir -p "$user_systemd"
+    cp "$script_dir/systemd/hf-nomad-rigctld.service" "$user_systemd/"
+    cp "$script_dir/systemd/hf-nomad-modem.service" "$user_systemd/"
+    cp "$script_dir/systemd/hf-nomad.target" "$user_systemd/"
+    success "Installed services to $user_systemd/"
+
+    # Install hf-nomad script
+    info "Installing hf-nomad control script..."
+    mkdir -p "$user_bin"
+    cp "$script_dir/scripts/hf-nomad" "$user_bin/"
+    chmod +x "$user_bin/hf-nomad"
+    success "Installed hf-nomad to $user_bin/"
+
+    # Check if ~/.local/bin is in PATH
+    if [[ ":$PATH:" != *":$user_bin:"* ]]; then
+        warn "$user_bin is not in PATH"
+        echo "Add this to your ~/.bashrc or ~/.zshrc:"
+        echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+    fi
+
+    # Reload systemd
+    if command -v systemctl &> /dev/null; then
+        systemctl --user daemon-reload 2>/dev/null || true
+        success "Reloaded systemd user daemon"
+    fi
+}
+
+# -----------------------------------------------------------------------------
 # Generate Config Files
 # -----------------------------------------------------------------------------
 generate_configs() {
@@ -621,25 +661,23 @@ print_summary() {
     echo "  ~/.reticulum/config"
     echo "  ~/.nomadnetwork/config"
     echo ""
-    echo "Next steps:"
+    echo "Installed:"
+    echo "  ~/.config/systemd/user/hf-nomad-*.service"
+    echo "  ~/.local/bin/hf-nomad"
     echo ""
-
-    if [ "$RADIO_SERIAL" != "none" ] && [ "$PTT_METHOD" = "rigctld" ]; then
-        echo "  1. Start rigctld:"
-        echo "     rigctld -m $RADIO_MODEL -r $RADIO_SERIAL -t $RIGCTLD_PORT &"
-        echo ""
-        echo "  2. Start freedvtnc2:"
-        echo "     freedvtnc2"
-        echo ""
-        echo "  3. Start NomadNet:"
-        echo "     nomadnet"
-    else
-        echo "  1. Start freedvtnc2:"
-        echo "     freedvtnc2"
-        echo ""
-        echo "  2. Start NomadNet:"
-        echo "     nomadnet"
-    fi
+    echo -e "${BOLD}Quick Start:${NC}"
+    echo ""
+    echo "  hf-nomad start       # Start the HF radio stack"
+    echo "  hf-nomad status      # Check status"
+    echo "  nomadnet             # Launch NomadNet"
+    echo ""
+    echo -e "${BOLD}Other Commands:${NC}"
+    echo ""
+    echo "  hf-nomad test-radio  # Test CAT connection"
+    echo "  hf-nomad test-audio  # Test audio devices"
+    echo "  hf-nomad monitor     # Watch live output"
+    echo "  hf-nomad enable      # Enable autostart on login"
+    echo "  hf-nomad help        # Show all commands"
     echo ""
 }
 
@@ -658,6 +696,7 @@ main() {
     select_ptt_method
     select_freedv_mode
     generate_configs
+    install_services
     print_summary
 }
 
