@@ -302,7 +302,7 @@ detect_audio_devices() {
             if [[ "$line" =~ ^card ]]; then
                 echo -e "  ${BOLD}[$idx]${NC} $line"
                 input_devices+=("$idx")
-                ((idx++))
+                ((++idx))
             fi
         done < <(arecord -l 2>/dev/null || true)
 
@@ -321,7 +321,7 @@ detect_audio_devices() {
             if [[ "$line" =~ ^card ]]; then
                 echo -e "  ${BOLD}[$idx]${NC} $line"
                 output_devices+=("$idx")
-                ((idx++))
+                ((++idx))
             fi
         done < <(aplay -l 2>/dev/null || true)
 
@@ -631,6 +631,7 @@ EOF
 [textui]
   intro_time = 1
   mouse_enabled = True
+  colormode = 256
 
 [announce]
   announce_interval = 720
