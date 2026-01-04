@@ -82,11 +82,8 @@ def get_config_dir():
 
 def get_freedvtnc2_config_path():
     """Get freedvtnc2 config file path."""
-    if IS_WINDOWS:
-        base = os.environ.get('APPDATA', os.path.expanduser('~'))
-        return Path(base) / 'freedvtnc2' / 'config'
-    else:
-        return Path.home() / '.freedvtnc2.conf'
+    # freedvtnc2 uses ~/.freedvtnc2.conf on all platforms
+    return Path.home() / '.freedvtnc2.conf'
 
 
 def get_reticulum_config_path():
@@ -119,6 +116,7 @@ def confirm_overwrite(filepath, name):
 RADIO_MODELS = [
     ('3085', 'Icom IC-705'),
     ('3073', 'Icom IC-7300'),
+    ('3078', 'Icom IC-7610'),
     ('1036', 'Yaesu FT-891'),
     ('1035', 'Yaesu FT-991/991A'),
     ('1020', 'Yaesu FT-817'),

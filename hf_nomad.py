@@ -158,10 +158,19 @@ def find_executable(name):
 
     # Check common locations
     if IS_WINDOWS:
+        # Find hamlib in user directory (common extraction location)
+        hamlib_dirs = list(Path.home().glob('hamlib/hamlib-w64-*/bin'))
+        hamlib_dirs += list(Path.home().glob('hamlib/bin'))
+
         locations = [
+            *[d / name_exe for d in hamlib_dirs],
             Path(os.environ.get('LOCALAPPDATA', '')) / 'Programs' / 'hamlib' / 'bin' / name_exe,
             Path('C:/Program Files/hamlib/bin') / name_exe,
+            Path('C:/Program Files (x86)/hamlib/bin') / name_exe,
             Path('C:/hamlib/bin') / name_exe,
+            # Python Scripts directory for freedvtnc2
+            Path(os.environ.get('LOCALAPPDATA', '')) / 'Programs' / 'Python' / 'Python311' / 'Scripts' / name_exe,
+            Path.home() / 'AppData' / 'Local' / 'Programs' / 'Python' / 'Python311' / 'Scripts' / name_exe,
         ]
     else:
         locations = [
