@@ -571,15 +571,13 @@ kiss-tcp-port={config.kiss_port}
 kiss-tcp-address=127.0.0.1
 """
 
+        # freedvtnc2 uses rigctld for PTT - no ptt-method option exists
         if config.ptt_method == 'rigctld':
-            freedv_content += f"""ptt-method=rigctld
-rigctld-host=localhost
+            freedv_content += f"""rigctld-host=localhost
 rigctld-port={config.rigctld_port}
 """
-        elif config.ptt_method in ('RTS', 'DTR'):
-            freedv_content += f"""ptt-method={config.ptt_method}
-ptt-device={config.radio_serial}
-"""
+        # Note: freedvtnc2 doesn't support RTS/DTR PTT directly
+        # For hardware PTT, use rigctld with appropriate backend
 
         freedvtnc2_config.write_text(freedv_content)
         success(f"Created: {freedvtnc2_config}")

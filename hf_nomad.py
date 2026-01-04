@@ -244,21 +244,21 @@ def cmd_start():
             error(f"Failed to start rigctld: {e}", exit_code=0)
 
     # Start freedvtnc2
-    freedvtnc2 = find_executable('freedvtnc2')
-    if not freedvtnc2:
-        error("freedvtnc2 not found. Make sure it's installed via pip/pipx.")
-
     info("Starting freedvtnc2...")
 
     try:
         if IS_WINDOWS:
+            # On Windows, run as python module to avoid .exe wrapper issues
             proc = subprocess.Popen(
-                [freedvtnc2],
+                [sys.executable, '-m', 'freedvtnc2', '--no-cli'],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
             )
         else:
+            freedvtnc2 = find_executable('freedvtnc2')
+            if not freedvtnc2:
+                error("freedvtnc2 not found. Make sure it's installed via pip/pipx.")
             proc = subprocess.Popen(
                 [freedvtnc2],
                 stdout=subprocess.DEVNULL,

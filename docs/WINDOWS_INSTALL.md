@@ -252,6 +252,12 @@ nomadnet
 
 ## Usage Notes
 
+### Serial Ports (COM Ports)
+
+Windows may not auto-detect serial ports in `configure.py`. If no ports are shown, use **Manual entry (M)** and type your COM port (e.g., `COM16`).
+
+Find your COM port in Device Manager under "Ports (COM & LPT)".
+
 ### Audio Devices
 
 Windows exposes audio devices through multiple APIs (MME, DirectSound, WASAPI). The same physical device appears multiple times. Generally use the lower-numbered IDs.
