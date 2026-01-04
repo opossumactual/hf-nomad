@@ -7,6 +7,8 @@ Prerequisites:
 1. Python 3.11+ from python.org (NOT Microsoft Store)
 2. Visual Studio Build Tools 2022 (for MSVC compiler)
 3. MSYS2 with codec2 built
+
+Can auto-install missing prerequisites using winget (Windows 10/11).
 """
 
 import os
@@ -16,6 +18,25 @@ import shutil
 from pathlib import Path
 from urllib.request import urlretrieve
 import tempfile
+
+
+def has_winget():
+    """Check if winget is available."""
+    try:
+        result = subprocess.run(['winget', '--version'], capture_output=True, text=True)
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+
+
+def install_with_winget(package_id, package_name):
+    """Install a package using winget."""
+    print(f"  Installing {package_name} via winget...")
+    print(f"  This may take several minutes and require admin approval.")
+    print()
+    result = subprocess.run(['winget', 'install', '--id', package_id, '-e', '--accept-source-agreements', '--accept-package-agreements'],
+                           capture_output=False)
+    return result.returncode == 0
 
 # Require Windows
 if sys.platform != 'win32':
@@ -73,7 +94,7 @@ def check_python():
     return True
 
 
-def check_vs_build_tools():
+def check_vs_build_tools(offer_install=True):
     """Check for Visual Studio Build Tools with MSVC."""
     print()
     print(f"{BOLD}Checking Visual Studio Build Tools...{NC}")
@@ -98,7 +119,28 @@ def check_vs_build_tools():
 
     fail("Visual Studio Build Tools not found")
     print()
-    print("  To install:")
+
+    if offer_install and has_winget():
+        print("  Visual Studio Build Tools can be installed automatically.")
+        response = input("  Install via winget? [y/N]: ").strip().lower()
+        if response == 'y':
+            # Install VS Build Tools with C++ workload
+            print()
+            info("Installing Visual Studio Build Tools...")
+            info("This is a large download (~2GB) and may take 10-20 minutes.")
+            result = subprocess.run([
+                'winget', 'install',
+                '--id', 'Microsoft.VisualStudio.2022.BuildTools',
+                '-e', '--accept-source-agreements', '--accept-package-agreements',
+                '--override', '--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --quiet --wait'
+            ], capture_output=False)
+            if result.returncode == 0:
+                success("VS Build Tools installed! Restart this script to verify.")
+                return False  # Need restart to detect
+            else:
+                warn("Installation may have failed. Try manual install.")
+
+    print("  To install manually:")
     print("  1. Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/")
     print("  2. Run installer")
     print("  3. Select 'Desktop development with C++'")
@@ -106,7 +148,7 @@ def check_vs_build_tools():
     return False
 
 
-def check_msys2():
+def check_msys2(offer_install=True):
     """Check for MSYS2 installation."""
     print()
     print(f"{BOLD}Checking MSYS2...{NC}")
@@ -125,13 +167,60 @@ def check_msys2():
 
     fail("MSYS2 not found")
     print()
-    print("  To install:")
+
+    if offer_install and has_winget():
+        print("  MSYS2 can be installed automatically.")
+        response = input("  Install via winget? [y/N]: ").strip().lower()
+        if response == 'y':
+            print()
+            info("Installing MSYS2...")
+            result = subprocess.run([
+                'winget', 'install', '--id', 'MSYS2.MSYS2',
+                '-e', '--accept-source-agreements', '--accept-package-agreements'
+            ], capture_output=False)
+            if result.returncode == 0:
+                success("MSYS2 installed!")
+                print()
+                info("Now installing required MSYS2 packages...")
+                # Run pacman to install toolchain
+                msys_path = Path('C:/msys64')
+                if msys_path.exists():
+                    install_msys2_packages(msys_path)
+                    return msys_path
+            else:
+                warn("Installation may have failed. Try manual install.")
+
+    print("  To install manually:")
     print("  1. Download from: https://www.msys2.org/")
     print("  2. Run installer (use default C:\\msys64)")
     print("  3. Open MINGW64 terminal")
     print("  4. Run: pacman -Syu")
     print("  5. Run: pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git")
     return None
+
+
+def install_msys2_packages(msys_path):
+    """Install required packages in MSYS2."""
+    info("Installing MSYS2 toolchain packages...")
+    print("  This may open an MSYS2 window.")
+
+    # Create a script to run in MSYS2
+    script = """#!/bin/bash
+pacman -Syu --noconfirm
+pacman -S --noconfirm mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake git
+"""
+    script_path = msys_path / 'tmp' / 'install_packages.sh'
+    script_path.write_text(script.replace('\r\n', '\n'))
+
+    # Run via MSYS2 bash
+    bash_exe = msys_path / 'usr' / 'bin' / 'bash.exe'
+    if bash_exe.exists():
+        result = subprocess.run([str(bash_exe), '-l', '-c', '/tmp/install_packages.sh'],
+                               capture_output=False, timeout=600)
+        if result.returncode == 0:
+            success("MSYS2 packages installed!")
+        else:
+            warn("Package installation may have failed.")
 
 
 def check_codec2(msys_path):
@@ -314,6 +403,13 @@ def main():
     print("This script checks that all prerequisites are installed")
     print("before running the main Windows setup.")
     print()
+
+    # Check for winget
+    if has_winget():
+        success("winget available - can auto-install missing prerequisites")
+    else:
+        warn("winget not found - manual installation required for missing items")
+        print("  (winget comes with Windows 10/11 App Installer)")
 
     results = {}
 
