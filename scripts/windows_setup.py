@@ -343,6 +343,69 @@ def create_hf_nomad_command():
     print("  You can now run: hf-nomad start, hf-nomad stop, hf-nomad status")
 
 
+def check_and_fix_path():
+    """Check if Python Scripts is on PATH and offer to fix it."""
+    info("Checking PATH configuration...")
+
+    scripts_dir = Path(sys.executable).parent / 'Scripts'
+    python_dir = Path(sys.executable).parent
+
+    # Get current user PATH
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment', 0, winreg.KEY_READ) as key:
+            user_path, _ = winreg.QueryValueEx(key, 'Path')
+    except (WindowsError, FileNotFoundError):
+        user_path = ''
+
+    scripts_in_path = str(scripts_dir).lower() in user_path.lower()
+    python_in_path = str(python_dir).lower() in user_path.lower()
+
+    if scripts_in_path and python_in_path:
+        success("Python Scripts directory is on PATH")
+        return True
+
+    warn("Python Scripts directory is NOT on system PATH")
+    print()
+    print("  Without this, you can't run: nomadnet, rnsd, hf-nomad")
+    print()
+    response = input("  Add to PATH permanently? [Y/n]: ").strip().lower()
+
+    if response != 'n':
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Environment', 0,
+                               winreg.KEY_READ | winreg.KEY_WRITE) as key:
+                try:
+                    current_path, _ = winreg.QueryValueEx(key, 'Path')
+                except WindowsError:
+                    current_path = ''
+
+                new_entries = []
+                if not scripts_in_path:
+                    new_entries.append(str(scripts_dir))
+                if not python_in_path:
+                    new_entries.append(str(python_dir))
+
+                new_path = current_path.rstrip(';') + ';' + ';'.join(new_entries)
+                winreg.SetValueEx(key, 'Path', 0, winreg.REG_EXPAND_SZ, new_path)
+
+            success("Added to PATH!")
+            print()
+            warn("You must RESTART your terminal for PATH changes to take effect.")
+            print("  Or run this in PowerShell to refresh:")
+            print(f'  $env:Path = [Environment]::GetEnvironmentVariable("Path", "User") + ";" + [Environment]::GetEnvironmentVariable("Path", "Machine")')
+            return True
+        except Exception as e:
+            warn(f"Could not modify PATH: {e}")
+            print("  Add these manually to your system PATH:")
+            print(f"    {scripts_dir}")
+            print(f"    {python_dir}")
+            return False
+
+    return False
+
+
 def test_installation():
     """Test the installation."""
     print()
@@ -409,11 +472,11 @@ Please build codec2 first:
     # Step 7: Install hamlib
     install_hamlib()
 
-    # Step 8: Update PATH
-    add_to_path()
-
-    # Step 9: Create hf-nomad command
+    # Step 8: Create hf-nomad command
     create_hf_nomad_command()
+
+    # Step 9: Check and fix PATH (offers to add permanently)
+    check_and_fix_path()
 
     # Test
     test_installation()
