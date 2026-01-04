@@ -619,26 +619,27 @@ EOF
             success "Added HF interface to: ~/.reticulum/config"
         fi
     else
-        # No config exists - create minimal one with HF interface
-        info "Creating Reticulum config with HF interface..."
-        cat > "$reti_config" << EOF
-# Reticulum configuration
-# HF interface added by hf-nomad
+        # No config exists - generate default config first, then add HF interface
+        info "No Reticulum config found. Generating default config..."
 
-[reticulum]
-  enable_transport = no
-  share_instance = yes
+        # Run rnsd briefly to generate default config
+        if command -v rnsd &> /dev/null; then
+            timeout 2 rnsd 2>/dev/null || true
+            sleep 1
+        fi
 
-[logging]
-  loglevel = 2
-
-[interfaces]
-  [[Default Interface]]
-    type = AutoInterface
-    enabled = yes
-$hf_interface_block
-EOF
-        success "Created: ~/.reticulum/config"
+        if [ -f "$reti_config" ]; then
+            # Default config was generated, now add HF interface
+            echo "$hf_interface_block" >> "$reti_config"
+            success "Generated default config and added HF interface"
+        else
+            # Fallback: tell user to run nomadnet first
+            warn "Could not generate Reticulum config"
+            echo ""
+            echo "Please run 'nomadnet' once to generate the default config,"
+            echo "then run './configure.sh' again to add the HF interface."
+            echo ""
+        fi
     fi
 
     # NomadNet config - don't touch it, defaults work fine
