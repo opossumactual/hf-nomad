@@ -2,19 +2,65 @@
 
 This guide covers installing hf-nomad and all dependencies on Windows for running NomadNet/Reticulum over HF radio using FreeDV.
 
+## Why Windows Installation Is Complex
+
+freedvtnc2 was designed for Linux and has several challenges on Windows:
+
+1. **codec2 library dependency**: freedvtnc2 uses CFFI to call the codec2 C library. The build script has hardcoded Unix paths (`/usr/include/codec2/`, `/opt/homebrew/include/codec2/`).
+
+2. **Compiler mismatch**: Python on Windows uses MSVC (Visual Studio), but codec2 is typically built with MinGW/GCC in MSYS2. MSVC can't link MinGW `.a` files - we need to create a `.lib` import library.
+
+3. **Runtime DLL dependencies**: The MinGW-built codec2.dll depends on MinGW runtime DLLs (`libgcc_s_seh-1.dll`, `libwinpthread-1.dll`) that must be in PATH.
+
+4. **Unix-only Python modules**: freedvtnc2 imports `pty`, `tty`, `termios`, and `fcntl` - none of which exist on Windows. The code must be patched to make these conditional.
+
+5. **readline module**: The interactive shell uses `readline` which doesn't exist on Windows - we need `pyreadline3` as a replacement.
+
+**Bottom line**: You can't just `pip install freedvtnc2` on Windows. This guide walks through every workaround.
+
+## Quick Start (Automated)
+
+Run the prerequisites checker first, then the setup script:
+
+```powershell
+cd hf-nomad
+py -3.11 scripts/windows_prereqs.py   # Check/guide prerequisites
+py -3.11 scripts/windows_setup.py     # Automated setup
+```
+
+If prerequisites are missing, the checker will guide you through installing them.
+
+---
+
 ## Prerequisites
 
 - Windows 10/11 (64-bit)
-- Python 3.11 (from python.org)
-- MSYS2 with codec2 built (for freedvtnc2)
-- Visual Studio Build Tools 2022
+- Python 3.11 (from python.org - NOT Microsoft Store version)
+- MSYS2 with codec2 already built
+- Visual Studio Build Tools 2022 (for MSVC compiler and lib.exe)
+
+**Use the prerequisites checker to verify:** `py -3.11 scripts/windows_prereqs.py`
+
+### Building codec2 in MSYS2 (if not already done)
+
+```bash
+# In MSYS2 MINGW64 terminal:
+pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
+git clone https://github.com/drowe67/codec2.git
+cd codec2
+mkdir build && cd build
+cmake ..
+make
+```
+
+This creates `libcodec2.dll` in `build/src/`.
 
 ## Overview
 
 The installation consists of:
 1. Installing Python packages (nomadnet, reticulum, etc.)
-2. Building/installing freedvtnc2 with codec2 support
-3. Installing Hamlib for radio control
+2. Building/installing freedvtnc2 with codec2 support (the hard part)
+3. Installing Hamlib for radio control (rigctld)
 4. Patching freedvtnc2 for Windows compatibility
 
 ## Step 1: Install Python Packages
@@ -262,7 +308,85 @@ py -3.11 hf_nomad.py status
 
 ### freedvtnc2 output buffering
 
-If freedvtnc2 appears to hang, run with unbuffered Python:
+If freedvtnc2 appears to hang with no output, run with unbuffered Python:
 ```powershell
 py -3.11 -u -m freedvtnc2 --input-device X --output-device Y --rigctld-port 0 --no-cli
 ```
+
+### "fatal error C1083: Cannot open include file: 'freedv_api.h'"
+
+The freedvtnc2 source wasn't patched with your codec2 paths. Edit `freedv_build.py` and add your codec2/src directory to `include_dirs`.
+
+### "LINK : fatal error LNK1181: cannot open input file 'codec2.lib'"
+
+The MSVC import library wasn't created. Follow Step 2.1 to generate `codec2.lib` from the DLL.
+
+### cffi version conflict
+
+If you see `freedvtnc2 requires cffi<2.0.0` but have cffi 2.0.0, it usually still works. The version constraint is overly conservative.
+
+### Audio device issues
+
+Windows shows the same device multiple times (MME, DirectSound, WASAPI). If one doesn't work, try a different ID for the same physical device.
+
+### RS-BA1 / Remote Radio Setup
+
+For ICOM RS-BA1 or similar remote software:
+- The radio's virtual audio (ICOM_VAUDIO) may not be the right choice
+- Use Virtual Audio Cable "Line 1/2" if that's what RS-BA1 is configured for
+- Check RS-BA1 settings for which audio device it uses for Speaker/Mic
+
+---
+
+## Quick Reference Checklist
+
+Before freedvtnc2 will work on Windows, verify:
+
+- [ ] codec2 built in MSYS2 (`libcodec2.dll` exists)
+- [ ] `codec2.lib` created (MSVC import library)
+- [ ] freedvtnc2 source patched with codec2 paths in `freedv_build.py`
+- [ ] freedvtnc2 installed from patched source
+- [ ] Runtime DLLs copied to Python directory:
+  - [ ] `libcodec2.dll`
+  - [ ] `libgcc_s_seh-1.dll`
+  - [ ] `libwinpthread-1.dll`
+- [ ] `tnc.py` patched (conditional Unix imports)
+- [ ] `shell.py` patched (pyreadline3 fallback)
+- [ ] `pyreadline3` installed
+- [ ] Python Scripts directory in PATH
+
+Test with:
+```powershell
+py -3.11 -c "from _freedv_cffi import ffi, lib; print('codec2 version:', lib.freedv_get_version())"
+```
+
+---
+
+## Automated Setup
+
+Instead of following all steps manually, you can use the automated scripts:
+
+```powershell
+cd hf-nomad
+
+# Step 1: Check prerequisites (guides you through any missing items)
+py -3.11 scripts/windows_prereqs.py
+
+# Step 2: Run automated setup (builds freedvtnc2, installs hamlib, patches modules)
+py -3.11 scripts/windows_setup.py
+```
+
+**windows_prereqs.py** checks for:
+- Python 3.11+ (from python.org)
+- Visual Studio Build Tools with MSVC
+- MSYS2 installation
+- codec2 built in MSYS2
+- MinGW runtime DLLs
+
+**windows_setup.py** automates:
+- Creating MSVC import library from codec2 DLL
+- Downloading and patching freedvtnc2 source
+- Installing freedvtnc2 with codec2 paths
+- Copying runtime DLLs to Python directory
+- Patching tnc.py and shell.py for Windows compatibility
+- Installing Hamlib
