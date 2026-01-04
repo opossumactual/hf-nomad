@@ -119,6 +119,27 @@ Any radio supported by hamlib with USB audio, including:
 
 ## Troubleshooting
 
+### Command not found / PATH issues
+
+If `hf-nomad`, `freedvtnc2`, or `nomadnet` aren't found after install:
+
+```bash
+# Add ~/.local/bin to your PATH
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+For **zsh** users:
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+For **fish** users:
+```bash
+fish_add_path ~/.local/bin
+```
+
 ### Service won't start
 
 ```bash
