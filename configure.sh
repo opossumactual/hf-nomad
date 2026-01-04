@@ -595,7 +595,7 @@ EOF
   share_instance = yes
 
 [logging]
-  loglevel = 4
+  loglevel = 2
 
 [interfaces]
   [[Default Interface]]
