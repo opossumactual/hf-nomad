@@ -7,20 +7,24 @@ This guide walks you through installing hf-nomad on Windows 10/11.
 - Windows 10 or 11
 - An HF radio with USB CAT control and audio interface (e.g., IC-705, IC-7300, FT-891)
 - Basic familiarity with command line
+- About 2GB disk space for build tools
 
-## Step 1: Install Python 3.11+
+## Step 1: Install Python 3.11
 
-1. Download Python from https://www.python.org/downloads/
+**Important:** Use Python 3.11 specifically. Newer versions (3.12, 3.13, 3.14) may not have prebuilt wheels for all dependencies.
+
+1. Download Python 3.11 from https://www.python.org/downloads/release/python-3119/
+   - Get "Windows installer (64-bit)"
 2. Run the installer
 3. **Important**: Check "Add Python to PATH" at the bottom of the installer
 4. Click "Install Now"
 
 Verify installation:
-```
-python --version
+```cmd
+py -3.11 --version
 ```
 
-Should show Python 3.11 or higher.
+Should show Python 3.11.x.
 
 ## Step 2: Install MSYS2
 
@@ -57,18 +61,62 @@ make -j4
 # Usually: ~/codec2/build/src/libcodec2.dll
 ```
 
-Copy the DLL to your Python environment:
-```bash
-# Find where Python is installed (in regular Windows cmd/powershell)
-python -c "import sys; print(sys.prefix)"
+Now copy the DLLs to your Python directory. Open **Windows Command Prompt** (not MSYS2):
 
-# Copy libcodec2.dll to that location
-# Example: copy libcodec2.dll to C:\Users\YourName\AppData\Local\Programs\Python\Python311\
+```cmd
+# Find your Python directory
+py -3.11 -c "import sys; print(sys.prefix)"
+
+# Copy codec2 DLL and MinGW runtime DLLs to Python directory
+# Adjust paths as needed for your username
+copy C:\msys64\home\YOUR_USER\codec2\build\src\libcodec2.dll C:\Users\YOUR_USER\AppData\Local\Programs\Python\Python311\
+copy C:\msys64\mingw64\bin\libgcc_s_seh-1.dll C:\Users\YOUR_USER\AppData\Local\Programs\Python\Python311\
+copy C:\msys64\mingw64\bin\libwinpthread-1.dll C:\Users\YOUR_USER\AppData\Local\Programs\Python\Python311\
 ```
 
-Alternative: Add the codec2 build directory to your system PATH.
+## Step 4: Create MSVC Import Library
 
-## Step 4: Install Hamlib
+Python's pip uses MSVC to compile, which needs a `.lib` file (not MinGW's `.dll.a`).
+
+```cmd
+# Install pefile to extract DLL exports
+py -3.11 -m pip install pefile
+
+# Create a Python script to generate the .def file
+# Save this as make_def.py:
+```
+
+```python
+import pefile
+import sys
+
+dll_path = sys.argv[1]
+pe = pefile.PE(dll_path)
+
+print("LIBRARY codec2")
+print("EXPORTS")
+for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
+    if exp.name:
+        print(f"    {exp.name.decode()}")
+```
+
+```cmd
+# Run it to create codec2.def
+py -3.11 make_def.py C:\msys64\home\YOUR_USER\codec2\build\src\libcodec2.dll > codec2.def
+
+# Use MSVC lib.exe to create the import library
+# (Requires Visual Studio Build Tools - see below if you don't have it)
+lib /def:codec2.def /out:codec2.lib /machine:x64
+
+# Copy codec2.lib to the codec2 build directory
+copy codec2.lib C:\msys64\home\YOUR_USER\codec2\build\src\
+```
+
+**Note:** If you don't have `lib.exe`, install "Visual Studio Build Tools" from:
+https://visualstudio.microsoft.com/visual-cpp-build-tools/
+Select "Desktop development with C++" workload.
+
+## Step 5: Install Hamlib
 
 Hamlib provides `rigctld` for radio CAT control.
 
@@ -83,35 +131,68 @@ Verify:
 rigctl --version
 ```
 
-## Step 5: Install Python Packages
+## Step 6: Install freedvtnc2 (Modified Build)
 
-Open Command Prompt or PowerShell:
+freedvtnc2 has hardcoded Unix paths that need to be modified for Windows.
 
+```cmd
+# First install other dependencies
+py -3.11 -m pip install pyserial sounddevice pyaudio
+
+# Download freedvtnc2 source
+py -3.11 -m pip download freedvtnc2 --no-binary :all:
+tar -xf freedvtnc2-*.tar.gz
+cd freedvtnc2-*
 ```
-pip install pyserial sounddevice
-pip install freedvtnc2 nomadnet
+
+Edit `freedv_build.py` and find the `ffibuilder.set_source()` call. Add your codec2 paths to `include_dirs` and `library_dirs`:
+
+```python
+ffibuilder.set_source(
+    "_freedv",
+    '#include "freedv_api.h"',
+    libraries=["codec2"],
+    include_dirs=[
+        "/usr/local/include/codec2",  # existing
+        "C:/msys64/home/YOUR_USER/codec2/src",  # ADD THIS
+    ],
+    library_dirs=[
+        "/usr/local/lib",  # existing
+        "C:/msys64/home/YOUR_USER/codec2/build/src",  # ADD THIS
+    ],
+)
 ```
 
-If freedvtnc2 fails to install, codec2 wasn't found. Check:
-- Is libcodec2.dll in your PATH or Python directory?
-- Try: `set PATH=%PATH%;C:\path\to\codec2\build\src` then retry pip install
+Then install from the modified source:
 
-## Step 6: Download hf-nomad
-
+```cmd
+py -3.11 -m pip install .
 ```
-git clone https://github.com/YOUR_USERNAME/hf-nomad.git
+
+**Note:** Keep this modified source folder - you'll need it if you ever reinstall freedvtnc2.
+
+## Step 7: Install NomadNet
+
+```cmd
+py -3.11 -m pip install nomadnet
+```
+
+## Step 8: Download hf-nomad
+
+```cmd
+git clone https://github.com/opossumactual/hf-nomad.git
 cd hf-nomad
 git checkout windows-support
 ```
 
 Or download and extract the ZIP from GitHub.
 
-## Step 7: Configure
+## Step 9: Configure
 
 Run the configuration wizard:
 
-```
-python configure.py
+```cmd
+py -3.11 configure.py
 ```
 
 This will:
@@ -120,38 +201,38 @@ This will:
 3. Configure PTT method
 4. Generate config files
 
-## Step 8: Test
+## Step 10: Test
 
 Test your radio connection:
-```
-python hf_nomad.py test-radio
+```cmd
+py -3.11 hf_nomad.py test-radio
 ```
 
 Test audio devices:
-```
-python hf_nomad.py test-audio
+```cmd
+py -3.11 hf_nomad.py test-audio
 ```
 
 ## Usage
 
 Start the HF stack:
-```
-python hf_nomad.py start
+```cmd
+py -3.11 hf_nomad.py start
 ```
 
 Check status:
-```
-python hf_nomad.py status
+```cmd
+py -3.11 hf_nomad.py status
 ```
 
 Launch NomadNet (in a new terminal):
-```
-nomadnet
+```cmd
+py -3.11 -m nomadnet
 ```
 
 Stop the HF stack:
-```
-python hf_nomad.py stop
+```cmd
+py -3.11 hf_nomad.py stop
 ```
 
 ## Troubleshooting
