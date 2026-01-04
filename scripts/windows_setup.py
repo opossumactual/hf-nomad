@@ -222,8 +222,15 @@ def copy_runtime_dlls(codec2_info):
 
     # Copy codec2 DLL
     dll = Path(codec2_info['dll'])
-    shutil.copy(dll, python_dir)
-    success(f"Copied {dll.name}")
+    dest = python_dir / dll.name
+    if dest.exists():
+        info(f"{dll.name} already exists in Python directory")
+    else:
+        try:
+            shutil.copy(dll, python_dir)
+            success(f"Copied {dll.name}")
+        except PermissionError:
+            warn(f"Could not copy {dll.name} - file may be in use")
 
     # Find and copy MinGW runtime DLLs
     mingw_dlls = ['libgcc_s_seh-1.dll', 'libwinpthread-1.dll']
@@ -231,9 +238,15 @@ def copy_runtime_dlls(codec2_info):
 
     for dll_name in mingw_dlls:
         dll = mingw_bin / dll_name
-        if dll.exists():
-            shutil.copy(dll, python_dir)
-            success(f"Copied {dll_name}")
+        dest = python_dir / dll_name
+        if dest.exists():
+            info(f"{dll_name} already exists in Python directory")
+        elif dll.exists():
+            try:
+                shutil.copy(dll, python_dir)
+                success(f"Copied {dll_name}")
+            except PermissionError:
+                warn(f"Could not copy {dll_name} - file may be in use")
         else:
             warn(f"Could not find {dll_name}")
 
