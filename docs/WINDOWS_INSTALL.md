@@ -2,6 +2,34 @@
 
 This guide covers installing hf-nomad and all dependencies on Windows for running NomadNet/Reticulum over HF radio using FreeDV.
 
+## TL;DR - Quick Install
+
+```powershell
+# 1. Clone the repo
+git clone -b windows-support https://github.com/opossumactual/hf-nomad.git
+cd hf-nomad
+
+# 2. Check/install prerequisites (offers winget auto-install)
+py -3.11 scripts/windows_prereqs.py
+
+# 3. If codec2 not built, open MSYS2 MINGW64 and run:
+#    pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja git
+#    cd ~ && git clone https://github.com/drowe67/codec2.git
+#    cd codec2 && mkdir build && cd build && cmake .. && ninja
+
+# 4. Run setup (installs freedvtnc2, hamlib, fixes PATH)
+py -3.11 scripts/windows_setup.py
+
+# 5. Configure radio and audio
+py -3.11 configure.py
+
+# 6. Start and run
+hf-nomad start
+nomadnet
+```
+
+---
+
 ## Why Windows Installation Is Complex
 
 freedvtnc2 was designed for Linux and has several challenges on Windows:
@@ -401,3 +429,55 @@ py -3.11 scripts/windows_setup.py
 - Copying runtime DLLs to Python directory
 - Patching tnc.py and shell.py for Windows compatibility
 - Installing Hamlib
+- Adding Python Scripts to PATH permanently
+
+---
+
+## Command Reference
+
+After installation, these commands are available:
+
+### hf-nomad commands
+```powershell
+hf-nomad start       # Start rigctld + freedvtnc2
+hf-nomad stop        # Stop all processes
+hf-nomad status      # Show running processes and config
+hf-nomad test-radio  # Test CAT connection to radio
+hf-nomad test-audio  # List audio devices
+hf-nomad help        # Show help
+```
+
+### Other commands
+```powershell
+nomadnet             # Launch NomadNet TUI
+rnsd                 # Run Reticulum daemon
+```
+
+### Configuration files
+| File | Purpose |
+|------|---------|
+| `%APPDATA%\hf-nomad\config.json` | hf-nomad radio/audio settings |
+| `%USERPROFILE%\.freedvtnc2.conf` | freedvtnc2 modem settings |
+| `%USERPROFILE%\.reticulum\config` | Reticulum network config |
+
+---
+
+## Updating
+
+To get the latest version:
+```powershell
+cd hf-nomad
+git pull origin windows-support
+py -3.11 scripts/windows_setup.py  # Re-run if needed
+```
+
+---
+
+## Uninstalling
+
+```powershell
+py -3.11 scripts/windows_uninstall.py
+```
+
+This removes freedvtnc2, runtime DLLs, config files, and optionally Hamlib.
+Does NOT remove Python, VS Build Tools, or MSYS2.
